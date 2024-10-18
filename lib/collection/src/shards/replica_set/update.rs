@@ -457,9 +457,18 @@ impl ShardReplicaSet {
                 continue;
             };
 
+            // Skip deactivation for some shard states
             match peer_state {
-                ReplicaState::Active | ReplicaState::Initializing | ReplicaState::Resharding => (),
-                _ => continue,
+                // Missing updates on these is problematic, we should deactivate them
+                ReplicaState::Active
+                | ReplicaState::Initializing
+                | ReplicaState::Partial
+                | ReplicaState::Resharding => (),
+                // Missing updates on these is not a problem because consistency is guaranteed another way
+                ReplicaState::Dead
+                | ReplicaState::Listener
+                | ReplicaState::PartialSnapshot
+                | ReplicaState::Recovery => continue,
             }
 
             if matches!(peer_state, ReplicaState::Partial | ReplicaState::Resharding)
